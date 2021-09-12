@@ -1,0 +1,1 @@
+{"train_time": null, "valid_time": null, "train_predict_time": 0.23206329345703125, "test_predict_time": 0.0830070972442627, "anomalies": [6, 78, 121, 224, 251, 252, 321, 322, 323, 357, 490, 491, 492, 504, 519, 520]}
