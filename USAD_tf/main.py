@@ -6,7 +6,7 @@ import json
 
 import numpy as np
 
-from usad.utils import get_data, ConfigHandler, merge_data_to_csv, paint, pot_detect
+from usad.utils import get_data, ConfigHandler, paint, pot_detect
 from usad.model import USAD
 
 def main():

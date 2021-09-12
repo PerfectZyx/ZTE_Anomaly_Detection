@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 
-from usad.utils import get_data, merge_data_to_csv
+from usad.utils import get_data
 from usad.data import SlidingWindowDataset, SlidingWindowDataLoader
 
 import tensorflow as tf
