@@ -36,7 +36,7 @@ for alarm in alarms:
     score = []
     for i in range(20):
         score.append((test_scores[i][alarm], i))
-    sort = sorted(score, key=lambda x: x[0])
+    sort = sorted(score, key=lambda x: x[0], reverse=True)
     KPI = ''
     KPI_value = ''
 
