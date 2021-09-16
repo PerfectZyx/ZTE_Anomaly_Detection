@@ -20,7 +20,7 @@ class Encoder(Model):
             self.model.add(layers.Dense(cur_size, activation="relu"))
 
         self.model.add(layers.Dense(z_dims, activation="relu"))
-        self._set_inputs(tf.TensorSpec([None, input_dims], tf.float32, name='inputs'))
+        # self._set_inputs(tf.TensorSpec([None, input_dims], tf.float32, name='inputs'))
 
     def call(self, x):
         z = self.model(x)
@@ -42,7 +42,7 @@ class Decoder(Model):
     def call(self, z):
         w = self.model(z)
         return w
-    
+
 class USAD():
     def __init__(self, x_dims: int, max_epochs: int = 250, batch_size: int = 128,
                  encoder_nn_size = None, decoder_nn_size = None,
@@ -62,6 +62,9 @@ class USAD():
         self._shared_encoder = Encoder(input_dims=self._input_dims, z_dims=self._z_dims)
         self._decoder_G = Decoder(z_dims=self._z_dims, input_dims=self._input_dims)
         self._decoder_D = Decoder(z_dims=self._z_dims, input_dims=self._input_dims)
+
+#         self.AE1 = AE(self._shared_encoder, self._decoder_G)
+#         self.AE2 = AE(self._shared_encoder, self._decoder_D)
 
     def fit(self, values, valid_portion=0.2):
         n = int(len(values) * valid_portion)
@@ -85,9 +88,10 @@ class USAD():
         train_loss1 = []
         train_loss2 = []
 
-        optimizer_1 = tf.keras.optimizers.RMSprop(learning_rate=0.001)
-        optimizer_2 = tf.keras.optimizers.RMSprop(learning_rate=0.001)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        optimizer_D = tf.keras.optimizers.Adam(learning_rate=0.001)
 
+        mse = tf.keras.losses.MeanSquaredError()
 
         train_time = 0
         valid_time = 0
@@ -95,35 +99,32 @@ class USAD():
         for epoch in range(1, self._max_epochs + 1):
             
             train_start = time.time()
-            for step in range(train_sliding_window._total):
+            for step in range(train_sliding_window.total):
 
-                with tf.GradientTape() as tape1:
+                with tf.GradientTape() as tape_G:
                     x_batch_train = train_sliding_window.get_item(step)
-                    
                     w = tf.reshape(x_batch_train,(-1, self._input_dims))
-
+                    
                     z = self._shared_encoder(w)
                     w_G = self._decoder_G(z)
                     w_D = self._decoder_D(z)
                     w_G_D = self._decoder_D(self._shared_encoder(w_G))
-                    
-                    loss1 = (1 / epoch) * tf.reduce_mean((w - w_G) ** 2) + (1 - 1 / epoch) * tf.reduce_mean((w - w_G_D) ** 2)
 
-                with tf.GradientTape() as tape2:
-                    
+                    loss_G = (1 / epoch) * mse(w_G, w) + (1 - 1 / epoch) * mse(w_G_D, w)
+
+                grad_ae_G = tape_G.gradient(loss_G, self._shared_encoder.trainable_variables + self._decoder_G.trainable_variables + self._decoder_D.trainable_variables)
+                optimizer.apply_gradients(zip(grad_ae_G, self._shared_encoder.trainable_variables + self._decoder_G.trainable_variables + self._decoder_D.trainable_variables))
+
+                with tf.GradientTape() as tape_D:
                     z = self._shared_encoder(w)
                     w_G = self._decoder_G(z)
                     w_D = self._decoder_D(z)
-                    w3 = self._decoder_D(self._shared_encoder(w_G))
+                    w_G_D = self._decoder_D(self._shared_encoder(w_G))
 
-                    loss2 = (1 / epoch) * tf.reduce_mean((w - w_D) ** 2) - (1 - 1 / epoch) * tf.reduce_mean((w - w_G_D) ** 2)
+                    loss_D = (1 / epoch) * mse(w_D, w) - (1 - 1 / epoch) * mse(w_G_D, w)
+                grad_ae_D = tape_D.gradient(loss_D, self._shared_encoder.trainable_variables + self._decoder_D.trainable_variables + self._decoder_G.trainable_variables)
+                optimizer.apply_gradients(zip(grad_ae_D, self._shared_encoder.trainable_variables + self._decoder_D.trainable_variables + self._decoder_G.trainable_variables))
 
-                grad_ae1 = tape1.gradient(loss1, self._shared_encoder.trainable_variables + self._decoder_G.trainable_variables)
-                grad_ae2 = tape2.gradient(loss2, self._shared_encoder.trainable_variables + self._decoder_D.trainable_variables)
-                
-                optimizer_1.apply_gradients(zip(grad_ae1, self._shared_encoder.trainable_variables + self._decoder_G.trainable_variables))
-                optimizer_2.apply_gradients(zip(grad_ae2, self._shared_encoder.trainable_variables + self._decoder_D.trainable_variables))
-            
             train_time += time.time() - train_start
 
             val_losses1 = []
@@ -182,11 +183,12 @@ class USAD():
             if not on_dim:
                 batch_scores = np.sum(batch_scores, axis=2)
 
-            if not collect_scores:
-                collect_scores.extend(batch_scores[0])
-                collect_scores.extend(batch_scores[1:, -1])
-            else:
-                collect_scores.extend(batch_scores[:, -1])
+            # if not collect_scores:
+            #     collect_scores.extend(batch_scores[0:])
+            #     collect_scores.extend(batch_scores[1:, -1])
+            # else:
+            #     collect_scores.extend(batch_scores[:, -1])
+            collect_scores.extend(batch_scores[:, -1])
 
         return collect_scores
 
