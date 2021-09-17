@@ -13,10 +13,8 @@ test_scores = pickle.load(open(f'./data/new/ZTE-{dataset}/test_score.pkl', 'rb')
 
 test_data = pickle.load(open(f'./data/new/ZTE-{dataset}_test.pkl', 'rb')).T # 测试集数据，路径需要自己调整
 
-train_score = np.sum(train_scores, axis=0)
-test_score = np.sum(test_scores, axis=0)
 
-pot = pot_eval(train_score, test_score, level=0.995) # level为spot算法中的初始阈值，需要自行调整
+pot = pot_evalnp.sum(train_scores, axis=0), np.sum(test_scores, axis=0), level=0.995) # level为spot算法中的初始阈值，需要自行调整
 
 thresholds = np.array(pot['thresholds'])
 alarms = pot['alarms']
@@ -31,11 +29,13 @@ names = names.split(',')
 
 f = open(f'inter-{dataset}.csv', 'w')
 f.write('alarm point,top 5 KPI\n')
-for alarm in alarms:
 
+train_avg = np.mean(train_score, axis=0)
+for alarm in alarms:
+    scores = test_score[alarm] - train_avg
     score = []
-    for i in range(20):
-        score.append((test_scores[i][alarm], i))
+    for i in range(train_avg.shape[0]):
+        score.append((scores[i], i))
     sort = sorted(score, key=lambda x: x[0], reverse=True)
     KPI = ''
     KPI_value = ''
