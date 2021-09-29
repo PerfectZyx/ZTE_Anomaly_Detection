@@ -189,6 +189,7 @@ class SPOT:
             level = 1 - level
 
         level = level - floor(level)
+        print(level)
 
         n_init = self.init_data.size
 
@@ -207,6 +208,7 @@ class SPOT:
 
         g, s, l = self._grimshaw()
         self.extreme_quantile = self._quantile(g, s)
+        print(self.extreme_quantile, self.init_threshold)
 
         if verbose:
             print('[done]')
@@ -336,6 +338,8 @@ class SPOT:
             epsilon = abs(a) / n_points
 
         a = a + epsilon
+        if Ymean == Ym:
+            Ym = 0.999 * Ym
         b = 2 * (Ymean - Ym) / (Ymean * Ym)
         c = 2 * (Ymean - Ym) / (Ym ** 2)
 
@@ -430,6 +434,7 @@ class SPOT:
             else:
                 # If the observed value exceeds the current threshold (alarm case)
                 if self.data[i] > self.extreme_quantile:
+                    # print(1, self.data[i], self.extreme_quantile)
                     # if we want to alarm, we put it in the alarm list
                     if with_alarm:
                         alarm.append(i)
@@ -438,13 +443,14 @@ class SPOT:
                         self.peaks = np.append(self.peaks, self.data[i] - self.init_threshold)
                         self.Nt += 1
                         self.n += 1
-                        # and we update the thresholds
 
+                        # and we update the thresholds
                         g, s, l = self._grimshaw()
                         self.extreme_quantile = self._quantile(g, s)
 
                 # case where the value exceeds the initial threshold but not the alarm ones
                 elif self.data[i] > self.init_threshold:
+                    # print(2)
                     # we add it in the peaks
                     self.peaks = np.append(self.peaks, self.data[i] - self.init_threshold)
                     self.Nt += 1
