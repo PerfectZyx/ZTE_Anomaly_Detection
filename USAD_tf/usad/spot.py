@@ -208,7 +208,6 @@ class SPOT:
 
         g, s, l = self._grimshaw()
         self.extreme_quantile = self._quantile(g, s)
-        print(self.extreme_quantile, self.init_threshold)
 
         if verbose:
             print('[done]')
