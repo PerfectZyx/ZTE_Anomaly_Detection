@@ -96,7 +96,7 @@ def get_data_dim(dataset):
         raise ValueError('unknown dataset '+str(dataset))
 
 def get_data(dataset, max_train_size=None, max_test_size=None, do_preprocess=True, train_start=0,
-             test_start=0, prefix="processed", x_dims=None):
+             test_start=0, prefix="processed", x_dims=None, quntile=None):
     """
     get data from pkl files
 
@@ -132,8 +132,7 @@ def get_data(dataset, max_train_size=None, max_test_size=None, do_preprocess=Tru
         f.close()
     except (KeyError, FileNotFoundError):
         test_label = None
-    if do_preprocess:
-        train_data, test_data = preprocess(train_data, test_data)
+    train_data, test_data = preprocess(train_data, test_data, do_preprocess, quntile)
     print("train set shape: ", train_data.shape)
     print("test set shape: ", test_data.shape)
     if test_label is not None:
@@ -141,7 +140,7 @@ def get_data(dataset, max_train_size=None, max_test_size=None, do_preprocess=Tru
     print()
     return (train_data, None), (test_data, test_label)
 
-def preprocess(df_train, df_test):
+def preprocess(df_train, df_test, do_preprocess, quntile=None):
     """
     normalize raw data
     """
@@ -151,15 +150,30 @@ def preprocess(df_train, df_test):
         raise ValueError('Data must be a 2-D array')
     if np.any(sum(np.isnan(df_train)) != 0):
         print('train data contains null values. Will be replaced with 0')
-        df_train = np.nan_to_num()
+        df_train = np.nan_to_num(df_train)
     if np.any(sum(np.isnan(df_test)) != 0):
         print('test data contains null values. Will be replaced with 0')
-        df_test = np.nan_to_num()
-    scaler = MinMaxScaler()
-    scaler = scaler.fit(df_train)
-    df_train = scaler.transform(df_train)
-    df_test = scaler.transform(df_test)
+        df_test = np.nan_to_num(df_test)
+    if do_preprocess:
+        if quntile is None:
+            scaler = MinMaxScaler()
+            scaler = scaler.fit(df_train)
+            df_train = scaler.transform(df_train)
+            df_test = scaler.transform(df_test)
+        else:
+            df_min = np.percentile(np.sort(df_train, axis=0), 100 - quntile, axis=0)
+            df_max = np.percentile(np.sort(df_train, axis=0), quntile, axis=0)
+
+            scaler = df_max - df_min
+            scaler[np.where(scaler == 0)[0]] = 1
+
+            df_train = (df_train - df_min) / scaler
+            df_test = (df_test - df_min) / scaler
+
+    df_train = np.asarray(df_train, dtype=np.float32)
+    df_test = np.asarray(df_test, dtype=np.float32)
     return df_train, df_test
+
 
 def is_number(s):
     try:

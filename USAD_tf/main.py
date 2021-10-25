@@ -17,7 +17,7 @@ def main():
     (x_train, _), (x_test, y_test) = \
         get_data(config.dataset, config.max_train_size, config.max_test_size,
                  train_start=config.train_start, test_start=config.test_start, do_preprocess=True,
-                 prefix='../Compared/OmniAnomaly/processed')
+                 prefix='../Compared/OmniAnomaly/processed', x_dims=config.x_dims, quntile=90)
 
     model = USAD(x_dims=config.x_dims, max_epochs=config.max_epochs,
                  batch_size=config.batch_size, z_dims=config.z_dims,
