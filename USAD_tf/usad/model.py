@@ -17,9 +17,9 @@ class Encoder(Model):
 
         self.model = Sequential()
         for cur_size in nn_size:
-            self.model.add(layers.Dense(cur_size, activation="relu"))
+            self.model.add(layers.Dense(cur_size, activation="relu", kernel_initializer=tf.constant_initializer(0), bias_initializer=tf.constant_initializer(0)))
 
-        self.model.add(layers.Dense(z_dims, activation="relu"))
+        self.model.add(layers.Dense(z_dims, activation="relu", kernel_initializer=tf.constant_initializer(0), bias_initializer=tf.constant_initializer(0)))
         # self._set_inputs(tf.TensorSpec([None, input_dims], tf.float32, name='inputs'))
 
     def call(self, x):
@@ -35,9 +35,9 @@ class Decoder(Model):
 
         self.model =  Sequential()
         for cur_size in nn_size:
-            self.model.add(layers.Dense(cur_size, activation="relu"))
+            self.model.add(layers.Dense(cur_size, activation="relu", kernel_initializer=tf.constant_initializer(0), bias_initializer=tf.constant_initializer(0)))
         
-        self.model.add(layers.Dense(input_dims, activation="sigmoid"))
+        self.model.add(layers.Dense(input_dims, activation="sigmoid", kernel_initializer=tf.constant_initializer(0), bias_initializer=tf.constant_initializer(0)))
 
     def call(self, z):
         w = self.model(z)
@@ -88,15 +88,20 @@ class USAD():
         train_loss1 = []
         train_loss2 = []
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-        optimizer_D = tf.keras.optimizers.Adam(learning_rate=0.001)
-
         mse = tf.keras.losses.MeanSquaredError()
 
         train_time = 0
         valid_time = 0
        
         for epoch in range(1, self._max_epochs + 1):
+            if epoch < 10:
+                learning_rate = 1
+            elif epoch < 20:
+                learning_rate = 10
+            elif epoch < 30:
+                learning_rate = 100
+
+            optimizer = tf.keras.optimizers.Adam(learning_rate=0.1 / learning_rate)
             
             train_start = time.time()
             for step in range(train_sliding_window.total):
